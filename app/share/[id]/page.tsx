@@ -2,17 +2,15 @@ import prisma from "@/lib/prisma";
 import { Calendar, CheckCircle, ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
 
-// CORREÇÃO: O tipo agora é uma Promise
 type Props = {
   params: Promise<{ id: string }>;
 };
 
 export default async function SharePage({ params }: Props) {
-  // CORREÇÃO: Precisamos aguardar o params resolver antes de pegar o ID
   const { id } = await params;
 
   const carro = await prisma.carro.findUnique({
-    where: { id }, // Agora o id existe!
+    where: { id },
   });
 
   if (!carro) return notFound();
@@ -22,7 +20,6 @@ export default async function SharePage({ params }: Props) {
     orderBy: { data: "desc" },
   });
 
-  // Filtra itens importantes (Motor THP)
   const itensCriticos = manutencoes.filter(
     (m) =>
       m.descricao.toLowerCase().includes("corrente") ||
@@ -35,7 +32,6 @@ export default async function SharePage({ params }: Props) {
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 font-sans text-slate-800">
       <div className="max-w-3xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-200">
-        {/* CABEÇALHO "PREMIUM" */}
         <div className="bg-slate-900 text-white p-8 text-center relative overflow-hidden">
           <div className="relative z-10">
             <div className="inline-flex items-center gap-2 bg-blue-600 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
@@ -49,7 +45,6 @@ export default async function SharePage({ params }: Props) {
           <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-500 via-slate-900 to-slate-900"></div>
         </div>
 
-        {/* DESTAQUES (CRÔNICOS RESOLVIDOS) */}
         {itensCriticos.length > 0 && (
           <div className="bg-blue-50 p-6 border-b border-blue-100">
             <h2 className="text-blue-900 font-bold mb-4 flex items-center gap-2">
@@ -73,7 +68,6 @@ export default async function SharePage({ params }: Props) {
           </div>
         )}
 
-        {/* TIMELINE DE CUIDADO */}
         <div className="p-8">
           <h2 className="text-xl font-bold mb-6 border-b pb-2">
             Linha do Tempo Completa
@@ -126,7 +120,6 @@ export default async function SharePage({ params }: Props) {
           </div>
         </div>
 
-        {/* RODAPÉ */}
         <div className="bg-slate-50 p-6 text-center text-slate-400 text-xs border-t border-slate-200">
           Relatório gerado automaticamente via MyGarage App.
           <br />A veracidade das informações é de responsabilidade do

@@ -7,7 +7,6 @@ export function ShareButton({ carId }: { carId: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    // Cria o link baseado na URL atual
     const url = `${window.location.origin}/share/${carId}`;
     navigator.clipboard.writeText(url);
 

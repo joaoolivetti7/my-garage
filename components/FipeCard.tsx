@@ -2,11 +2,17 @@
 
 import { DollarSign } from "lucide-react";
 
+interface FipeData {
+  valor: string;
+  modelo: string;
+  anoModelo: string;
+}
+
 export function FipeCard({
   fipeData,
   totalGasto,
 }: {
-  fipeData: any;
+  fipeData: FipeData | null;
   totalGasto: number;
 }) {
   if (!fipeData) return null;
@@ -44,7 +50,6 @@ export function FipeCard({
           </span>
         </div>
 
-        {/* Barra de Progresso do Custo/Benefício */}
         <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mb-1">
           <div
             className={`h-full ${porcentagemGasta > 50 ? "bg-red-500" : "bg-blue-500"}`}

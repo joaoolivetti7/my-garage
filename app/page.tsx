@@ -1,15 +1,22 @@
 import prisma, { getPrecoFipe } from "@/lib/prisma";
 import { Wrench, Calendar, DollarSign, Activity, Droplets } from "lucide-react";
 import { MaintenanceForm } from "@/components/MaintenanceForm";
-import { CarForm } from "@/components/CarForm"; // <--- Importe o novo form
+import { CarForm } from "@/components/CarForm";
 import { FipeCard } from "@/components/FipeCard";
 import { PdfButton } from "@/components/PdfButton";
 import { ShareButton } from "@/components/ShareButton";
+import { AIConsultant } from "@/components/AIConsultant";
+
+interface CardStatProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}
 
 async function getDados() {
-  const carro = await prisma.carro.findFirst(); // Tenta achar o carro
+  const carro = await prisma.carro.findFirst();
 
-  if (!carro) return { carro: null, manutencoes: [] }; // Retorna nulo se não tiver
+  if (!carro) return { carro: null, manutencoes: [] };
 
   const manutencoes = await prisma.manutencao.findMany({
     where: { carroId: carro.id },
@@ -22,7 +29,6 @@ async function getDados() {
 export default async function Home() {
   const { carro, manutencoes } = await getDados();
 
-  // 1. LÓGICA: Se não tem carro, mostra a tela de cadastro
   if (!carro) {
     return <CarForm />;
   }
@@ -31,35 +37,26 @@ export default async function Home() {
 
   let dadosFipe = null;
   if (carro.fipeCodigo) {
-    // Passamos o ano do carro (ex: 2015) para filtrar certo
     dadosFipe = await getPrecoFipe(carro.fipeCodigo, carro.ano);
   }
 
-  // 2. LÓGICA: Cálculo da Próxima Troca (Regra dos 7.000km)
-  const ultimaTrocaOleo = manutencoes.find(
-    (m) =>
-      m.descricao.toLowerCase().includes("oleo") ||
-      m.descricao.toLowerCase().includes("óleo"),
-  );
+  // 1. LÓGICA DE TROCA DE ÓLEO (Rígida: Só conta se tipo for TROCA_OLEO)
+  // Não usa mais 'includes string', agora usa o tipo exato do banco.
+  const ultimaTrocaOleo = manutencoes.find((m) => m.tipo === "TROCA_OLEO");
 
   let avisoTroca = null;
-
   if (ultimaTrocaOleo) {
-    const intervaloTroca = 7000; // THP gosta de óleo novo
+    const intervaloTroca = 7000;
     const kmProximaTroca = ultimaTrocaOleo.km + intervaloTroca;
     const kmRestante = kmProximaTroca - carro.kmAtual;
     const percentualUso = 100 - (kmRestante / intervaloTroca) * 100;
 
-    // Define a cor e mensagem do aviso
     let corBarra = "bg-green-500";
     let textoAviso = `Faltam ${kmRestante.toLocaleString()} km`;
 
-    if (kmRestante <= 1000 && kmRestante > 0) {
-      corBarra = "bg-yellow-500";
-      textoAviso = "Planeje a troca em breve";
-    } else if (kmRestante <= 0) {
-      corBarra = "bg-red-500";
-      textoAviso = `PASSOU ${Math.abs(kmRestante)} KM! TROQUE AGORA!`;
+    if (kmRestante <= 1000) {
+      corBarra = kmRestante <= 0 ? "bg-red-500" : "bg-yellow-500";
+      textoAviso = kmRestante <= 0 ? "TROCA VENCIDA!" : "Planeje a troca";
     }
 
     avisoTroca = {
@@ -71,10 +68,39 @@ export default async function Home() {
     };
   }
 
+  // 2. LÓGICA DE CONSUMO (Só conta se tipo for COMPLETAR_OLEO)
+  let alertasConsumo = null;
+  if (ultimaTrocaOleo) {
+    // Pega tudo que foi completado APÓS a última troca
+    const complementos = manutencoes.filter(
+      (m) => m.tipo === "COMPLETAR_OLEO" && m.km > ultimaTrocaOleo.km,
+    );
+
+    const totalLitros = complementos.reduce(
+      (acc, curr) => acc + (curr.quantidade || 0),
+      0,
+    );
+    const kmRodados = carro.kmAtual - ultimaTrocaOleo.km;
+
+    if (totalLitros > 0 && kmRodados > 0) {
+      const litrosPorMil = (totalLitros / kmRodados) * 1000;
+
+      alertasConsumo = {
+        total: totalLitros.toFixed(1),
+        media: litrosPorMil.toFixed(2),
+        status:
+          litrosPorMil > 0.8
+            ? "CRÍTICO"
+            : litrosPorMil > 0.4
+              ? "ALERTA"
+              : "NORMAL",
+      };
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 p-4 md:p-8 text-slate-800">
       <div className="max-w-4xl mx-auto">
-        {/* HEADER DO CARRO */}
         <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">
@@ -85,7 +111,6 @@ export default async function Home() {
             </p>
             <div className="flex gap-2 mt-4">
               <ShareButton carId={carro.id} />
-              {/* BOTÃO PDF NOVO */}
               <PdfButton carro={carro} manutencoes={manutencoes} />
             </div>
           </div>
@@ -98,8 +123,6 @@ export default async function Home() {
             </p>
           </div>
         </div>
-
-        {/* --- NOVO: CARD DE TROCA DE ÓLEO --- */}
         {avisoTroca ? (
           <div className="bg-slate-900 text-white rounded-xl p-6 shadow-lg mb-8 border-l-4 border-blue-500 relative overflow-hidden">
             <div className="flex justify-between items-end relative z-10">
@@ -115,7 +138,6 @@ export default async function Home() {
                 </div>
               </div>
 
-              {/* Barra circular ou visual simples */}
               <div className="text-right">
                 <div className="text-4xl font-bold opacity-20">
                   {Math.floor(avisoTroca.percentualUso)}%
@@ -123,7 +145,6 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* Barra de progresso fundo */}
             <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-800">
               <div
                 className={`h-full ${avisoTroca.corBarra} transition-all duration-1000`}
@@ -138,7 +159,6 @@ export default async function Home() {
           </div>
         )}
 
-        {/* DASHBOARD STATUS */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8">
           <CardStat
             icon={<DollarSign className="text-green-500" />}
@@ -157,17 +177,16 @@ export default async function Home() {
           />
         </div>
 
-        {/* FIPE CARD (Novo - Ocupa 1 espaço ou destaque) */}
         {dadosFipe && (
           <div className="lg:col-span-1">
             <FipeCard fipeData={dadosFipe} totalGasto={totalGasto} />
           </div>
         )}
 
-        {/* FORMULÁRIO */}
+        <AIConsultant />
+
         <MaintenanceForm />
 
-        {/* LISTA HISTÓRICO */}
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
           <Calendar size={20} /> Histórico de Oficina
         </h2>
@@ -184,33 +203,32 @@ export default async function Home() {
                 className="p-4 border-b border-slate-100 flex justify-between items-center hover:bg-slate-50"
               >
                 <div>
-                  {/* Título da Manutenção */}
                   <div className="font-bold text-lg text-slate-800">
                     {item.descricao}
                   </div>
 
-                  {/* Linha de baixo: Data • KM • Etiqueta Colorida */}
                   <div className="text-xs text-slate-500 mt-1 flex items-center gap-2">
                     <span>{new Date(item.data).toLocaleDateString()}</span>
                     <span>•</span>
                     <span>{item.km.toLocaleString()} km</span>
 
-                    {/* AQUI ENTRA A ETIQUETA COLORIDA NOVA */}
                     <span
                       className={`px-2 py-0.5 rounded-sm font-bold uppercase tracking-wider border text-[10px] ${
                         item.tipo === "CORRETIVA"
                           ? "bg-red-50 text-red-600 border-red-200"
-                          : item.tipo === "ESTETICA"
-                            ? "bg-purple-50 text-purple-600 border-purple-200"
-                            : "bg-green-50 text-green-600 border-green-200"
+                          : item.tipo === "TROCA_OLEO"
+                            ? "bg-green-100 text-green-700 border-green-300 ring-1 ring-green-200" // Destaque Verde Forte
+                            : item.tipo === "COMPLETAR_OLEO"
+                              ? "bg-blue-100 text-blue-700 border-blue-300" // Destaque Azul
+                              : "bg-slate-50 text-slate-600 border-slate-200" // Preventiva comum
                       }`}
                     >
-                      {item.tipo}
+                      {item.tipo.replace("_", " ")}{" "}
+                      {/* Remove o underline visualmente */}
                     </span>
                   </div>
                 </div>
 
-                {/* Valor à direita */}
                 <div className="font-bold text-slate-700">
                   R${" "}
                   {item.custo.toLocaleString("pt-BR", {
@@ -226,7 +244,7 @@ export default async function Home() {
   );
 }
 
-function CardStat({ icon, label, value }: any) {
+function CardStat({ icon, label, value }: CardStatProps) {
   return (
     <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200">
       <div className="mb-2">{icon}</div>

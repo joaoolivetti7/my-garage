@@ -4,17 +4,27 @@ import { FileText } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+interface Carro {
+  modelo: string;
+}
+
+interface Manutencao {
+  data: string | Date;
+  descricao: string;
+  km: number;
+  tipo: string;
+}
+
 export function PdfButton({
   carro,
   manutencoes,
 }: {
-  carro: any;
-  manutencoes: any[];
+  carro: Carro;
+  manutencoes: Manutencao[];
 }) {
   const gerarPDF = () => {
     const doc = new jsPDF();
 
-    // Cabeçalho
     doc.setFillColor(30, 41, 59); // Slate-900
     doc.rect(0, 0, 210, 40, "F");
     doc.setTextColor(255, 255, 255);
@@ -27,7 +37,6 @@ export function PdfButton({
       30,
     );
 
-    // Tabela
     const tableData = manutencoes.map((m) => [
       new Date(m.data).toLocaleDateString(),
       m.descricao,
@@ -45,7 +54,6 @@ export function PdfButton({
       alternateRowStyles: { fillColor: [241, 245, 249] }, // Zebra
     });
 
-    // Rodapé
     const pageCount = doc.getNumberOfPages();
     doc.setFontSize(8);
     doc.setTextColor(150);

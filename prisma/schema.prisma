@@ -27,6 +27,7 @@ model Manutencao {
   custo       Float
   data        DateTime @default(now())
   tipo        String
+  quantidade  Float?   // <--- NOVO: Aceita 0.5 (500ml), 1.0, etc.
   carroId     String
   carro       Carro    @relation(fields: [carroId], references: [id])
 }
