@@ -81,19 +81,20 @@ Este projeto utiliza **Docker** para garantir que o ambiente seja replicável em
 
 ### 📂 Estrutura do Projeto
 
-/actions.ts # Server Actions (Lógica de Backend)
-/share/[id] # Rota pública dinâmica (Dossiê)
-page.tsx # Dashboard Principal
-/components # Componentes React (Client Components)
+/app
+  /actions.ts       # Server Actions (Lógica de Backend)
+  /share/[id]       # Rota pública dinâmica (Dossiê)
+  page.tsx          # Dashboard Principal
+/components         # Componentes React (Client Components)
 /lib
-prisma.ts # Singleton de conexão segura (Pool)
-fipe.ts # Integração com API externa
+  prisma.ts         # Singleton de conexão segura (Pool)
+  fipe.ts           # Integração com API externa
 /prisma
-schema.prisma # Modelagem do Banco de Dados
+  schema.prisma     # Modelagem do Banco de Dados
 
 ---
 
 🤝 Contribuição
 Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou pull requests.
 
-Desenvolvido com 💙 e muito café por [Seu Nome] - Londrina/PR.
+Desenvolvido com muito café por João Olivetti - Londrina/PR.
